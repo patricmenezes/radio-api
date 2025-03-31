@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player de Áudio Shoutcast</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #343541; color: #d1d5db; margin: 0; padding: 0; }
+        .player-footer { width: 100%; background-color: #000; padding: 10px; display: flex; align-items: center; justify-content: space-between; height: 100px; position: relative; }
+        .player-controls { display: flex; gap: 15px; height: 100%; }
+        .icon { height: 100%; aspect-ratio: 1/1; cursor: pointer; transition: transform 0.2s; }
+        .icon:hover { transform: scale(1.1); }
+        .text { flex-grow: 1; text-align: center; padding: 0 15px; }
+        .titulo { font-size: 18px; font-weight: bold; color: #fff; margin: 0; }
+        .artista { font-size: 16px; color: #9ca3af; margin: 0; }
+        .cover { height: 100%; aspect-ratio: 1/1; border-radius: 5px; object-fit: cover; background-color: #50515f; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: #333; padding: 20px; border-radius: 10px; text-align: center; width: 80%; max-width: 500px; }
+        .modal img { max-width: 100%; height: auto; border-radius: 10px; margin-bottom: 20px; }
+        .close { position: absolute; top: 20px; right: 20px; font-size: 30px; color: white; cursor: pointer; }
+    </style>
+</head>
+<body>
+  <div class="player-footer">
+      <div class="player-controls">
+          <img src="https://popfi.online/popfi-player/player/q.arrow1.webp" class="icon" id="playPause" onclick="togglePlay()">
+      </div>
+      <div class="text">
+          <p class="titulo" id="play_titulo">Carregando...</p>
+          <p class="artista" id="play_artista">Carregando...</p>
+      </div>
+      <img src="https://srv1937-files.hstgr.io/2e399b411b2ed1b0/files/public_html/popfi-player/json/cover_now.webp" class="cover" id="play_capa" onclick="abrirModal()">
+  </div>
+
+  <div class="modal" id="modal">
+      <span class="close" onclick="fecharModal()">&times;</span>
+      <div class="modal-content">
+          <img id="modalImg">
+          <p id="modalTitulo">Título: Carregando...</p>
+          <p id="modalArtista">Artista: Carregando...</p>
+          <p id="modalAlbum">Álbum: Carregando...</p>
+          <p id="modalAno">Ano: Carregando...</p>
+      </div>
+  </div>
+
+  <audio id="audio" src="https://cast3.midiazdx.com.br:7154/;stream.mp3"></audio>
+
+  <script>
+      let audio = document.getElementById("audio");
+      let playPause = document.getElementById("playPause");
+      
+      function togglePlay() {
+          if (audio.paused) {
+              audio.play().catch(error => console.log("Erro ao reproduzir:", error));
+              playPause.src = "https://popfi.online/popfi-player/player/q.player1.webp";
+          } else {
+              audio.pause();
+              playPause.src = "https://popfi.online/popfi-player/player/q.arrow1.webp";
+          }
+      }
+      
+      function abrirModal() {
+          fetch('https://popfi.online/popfi-player/json/nowplaying.json', { cache: "no-cache" })
+              .then(response => response.json())
+              .then(data => {
+                  document.getElementById("modal").style.display = "flex";
+                  document.getElementById("modalImg").src = data.detalhado.capa;
+                  document.getElementById("modalTitulo").innerText = "Título: " + data.detalhado.titulo;
+                  document.getElementById("modalArtista").innerText = "Artista: " + data.detalhado.artista;
+                  document.getElementById("modalAlbum").innerText = "Álbum: " + (data.detalhado.album || "Desconhecido");
+                  document.getElementById("modalAno").innerText = "Ano: " + (data.detalhado.ano || "Desconhecido");
+              })
+              .catch(error => console.log('Erro ao buscar os dados:', error));
+      }
+
+      function fecharModal() { document.getElementById("modal").style.display = "none"; }
+
+      function atualizarDados() {
+          fetch('https://popfi.online/popfi-player/json/nowplaying.json', { cache: "no-cache" })
+              .then(response => response.json())
+              .then(data => {
+                  document.getElementById("play_titulo").innerText = data.detalhado.titulo;
+                  document.getElementById("play_artista").innerText = data.detalhado.artista;
+                  document.getElementById("play_capa").src = data.detalhado.capa;
+              })
+              .catch(error => console.log('Erro ao buscar os dados:', error));
+      }
+
+      setInterval(atualizarDados, 5000);
+  </script>
+</body>
+</html>
