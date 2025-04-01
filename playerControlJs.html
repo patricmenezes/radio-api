@@ -7,7 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; background-color: #343541; color: #d1d5db; margin: 0; padding: 0; }
         .player-footer { width: 100%; background-color: #000; padding: 10px; display: flex; align-items: center; justify-content: space-between; height: 100px; position: relative; }
-        .player-controls { display: flex; gap: 15px; height: 100%; }
+        .player-controls { display: flex; gap: 15px; height: 100%; position: relative; }
         .icon { height: 100%; aspect-ratio: 1/1; cursor: pointer; transition: transform 0.2s; }
         .icon:hover { transform: scale(1.1); }
         .text { flex-grow: 1; text-align: center; padding: 0 15px; }
@@ -18,12 +18,17 @@
         .modal-content { background-color: #333; padding: 20px; border-radius: 10px; text-align: center; width: 80%; max-width: 500px; }
         .modal img { max-width: 100%; height: auto; border-radius: 10px; margin-bottom: 20px; }
         .close { position: absolute; top: 20px; right: 20px; font-size: 30px; color: white; cursor: pointer; }
+        .volume-container { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background-color: #50515f; padding: 5px; border-radius: 5px; z-index: 10; }
     </style>
 </head>
 <body>
   <div class="player-footer">
       <div class="player-controls">
           <img src="https://popfi.online/popfi-player/player/q.arrow1.webp" class="icon" id="playPause" onclick="togglePlay()">
+          <img src="https://popfi.online/popfi-player/player/q.volume100.webp" class="icon" id="volumeIcon" onclick="toggleVolumeSlider()">
+          <div class="volume-container" id="volumeContainer">
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.01" onchange="atualizarVolume(this.value)">
+          </div>
       </div>
       <div class="text">
           <p class="titulo" id="play_titulo">Carregando...</p>
@@ -48,6 +53,9 @@
   <script>
       let audio = document.getElementById("audio");
       let playPause = document.getElementById("playPause");
+      let volumeIcon = document.getElementById("volumeIcon");
+      let volumeContainer = document.getElementById("volumeContainer");
+      let volumeSlider = document.getElementById("volumeSlider");
       
       function togglePlay() {
           if (audio.paused) {
@@ -84,6 +92,22 @@
                   document.getElementById("play_capa").src = data.detalhado.capa;
               })
               .catch(error => console.log('Erro ao buscar os dados:', error));
+      }
+
+      function toggleVolumeSlider() { volumeContainer.style.display = volumeContainer.style.display === "none" ? "block" : "none"; }
+
+      function atualizarVolume(valor) {
+          audio.volume = valor;
+          atualizarIconeVolume(valor);
+      }
+
+      function atualizarIconeVolume(valor) {
+          let caminhoBase = "https://popfi.online/popfi-player/player/";
+          if (valor == 0) volumeIcon.src = caminhoBase + "q.volume0.webp";
+          else if (valor <= 0.25) volumeIcon.src = caminhoBase + "q.volume25.webp";
+          else if (valor <= 0.5) volumeIcon.src = caminhoBase + "q.volume50.webp";
+          else if (valor <= 0.75) volumeIcon.src = caminhoBase + "q.volume75.webp";
+          else volumeIcon.src = caminhoBase + "q.volume100.webp";
       }
 
       setInterval(atualizarDados, 5000);
