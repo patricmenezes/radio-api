@@ -1,8 +1,8 @@
 // Variáveis globais para controle
-let dadosMusica = {}; // Armazena os dados da música atual
-let nextCheckTime = 0; // Define o tempo da próxima checagem
-let isFirstUpdate = true; // Flag para identificar a primeira atualização
-let flagEnviado = false; // Flag para indicar se a notificação foi disparada
+let dadosMusica = {};
+let nextCheckTime = 0;
+let playerIniciado = false; // Flag para saber se o player já começou
+let player = document.getElementById("audioPlayer"); // ID do player de áudio
 
 // Função para atualizar os players na página
 function atualizarPlayers() {
@@ -34,6 +34,11 @@ function atualizarPlayers() {
 
 // Função para buscar os dados da música no JSON
 function calcularProximaChecagem() {
+    if (!playerIniciado) {
+        console.log("Player pausado. Aguardando play para buscar dados.");
+        return;
+    }
+
     fetch("https://popfi.online/popfi-player/json/nowplaying.json")
         .then(response => response.json())
         .then(data => {
@@ -48,26 +53,22 @@ function calcularProximaChecagem() {
             let [hora, minuto, segundo] = horaPart.split(":").map(Number);
             let horaGeracao = Math.floor(new Date(ano, mes - 1, dia, hora, minuto, segundo).getTime() / 1000);
 
-            // Cálculo do tempo restante em segundos
-            let tempoDecorrido = horaGeracao - now; // Deve ser um número negativo em segundos
-            let tempoRestante = tempoDecorrido + newSong.duracao - 10; // Soma com duração da música adicionei para começar faltando 10 segundos a verficação
+            // Cálculo do tempo restante
+            let tempoDecorrido = horaGeracao - now;
+            let tempoRestante = tempoDecorrido + newSong.duracao - 10;
 
-            console.log(`Tempo decorrido: ${tempoDecorrido}s`);
             console.log(`Tempo restante: ${tempoRestante}s`);
 
             if (tempoRestante <= 0) {
                 console.log("Música já mudou! Buscando nova música agora...");
-                calcularProximaChecagem(); // Busca imediatamente pois a música já acabou
+                calcularProximaChecagem();
                 return;
             }
 
-            if (isFirstUpdate || newSong.titulo !== dadosMusica.titulo) {
+            if (newSong.titulo !== dadosMusica.titulo) {
                 dadosMusica = newSong;
                 atualizarPlayers();
-
                 nextCheckTime = now + tempoRestante;
-                flagEnviado = false;
-                isFirstUpdate = false;
 
                 console.log("Nova música detectada:", newSong.titulo);
             } else {
@@ -79,31 +80,18 @@ function calcularProximaChecagem() {
         });
 }
 
-// Função para verificar se a música está quase terminando ou se precisa atualizar
-function verificarNovaMusica() {
-    let now = Math.floor(Date.now() / 1000); // Convertendo para segundos
-    let tempoRestante = nextCheckTime - now;
-
-    if (!flagEnviado && tempoRestante <= 10 && tempoRestante > 0) {
-        fetch("https://popfi.online/popfi-player/json/nowplaying.json")
-            .then(response => response.json())
-            .then(data => {
-                let newSong = data.detalhado;
-                if (newSong.titulo !== dadosMusica.titulo) {
-                    console.log("Música mudando nos últimos 10 segundos, disparando evento!");
-                    document.dispatchEvent(new Event("musicaQuaseTerminando"));
-                    flagEnviado = true;
-                }
-            })
-            .catch(error => console.log("Erro ao verificar mudança nos últimos segundos:", error));
+// Listener para iniciar a verificação apenas quando o usuário der play
+player.addEventListener("play", function () {
+    if (!playerIniciado) {
+        console.log("Player iniciado, começando a buscar dados.");
+        playerIniciado = true;
+        calcularProximaChecagem(); // Agora pode iniciar a contagem normalmente
+        setInterval(calcularProximaChecagem, 5 * 1000); // Faz a checagem a cada 5s
     }
-    
-    if (now >= nextCheckTime) {
-        console.log("Tempo esgotado, buscando nova música...");
-        calcularProximaChecagem();
-    }
-}
+});
 
-// Inicia a primeira checagem e configura o intervalo de verificação
-calcularProximaChecagem();
-setInterval(verificarNovaMusica, 5 * 1000); // Verifica a cada 5 segundos
+// Listener para pausar a atualização se o usuário pausar a música
+player.addEventListener("pause", function () {
+    console.log("Player pausado. Parando atualização.");
+    playerIniciado = false;
+});
